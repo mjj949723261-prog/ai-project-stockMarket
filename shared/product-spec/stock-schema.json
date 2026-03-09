@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StockAnalysis",
+  "type": "object",
+  "required": [
+    "code",
+    "name",
+    "totalScore",
+    "fundamentalsScore",
+    "newsScore",
+    "technicalsScore",
+    "sentimentScore",
+    "verdict",
+    "riskWarning",
+    "scoreTrend",
+    "fundamentalsReasons",
+    "newsReasons",
+    "technicalsReasons",
+    "sentimentReasons"
+  ],
+  "properties": {
+    "code": { "type": "string" },
+    "name": { "type": "string" },
+    "totalScore": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "fundamentalsScore": { "type": "integer", "minimum": 0, "maximum": 35 },
+    "newsScore": { "type": "integer", "minimum": 0, "maximum": 25 },
+    "technicalsScore": { "type": "integer", "minimum": 0, "maximum": 25 },
+    "sentimentScore": { "type": "integer", "minimum": 0, "maximum": 15 },
+    "verdict": { "type": "string" },
+    "riskWarning": { "type": "string" },
+    "scoreTrend": {
+      "type": "string",
+      "enum": ["up", "flat", "down"]
+    },
+    "fundamentalsReasons": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "newsReasons": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "technicalsReasons": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "sentimentReasons": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}
+
