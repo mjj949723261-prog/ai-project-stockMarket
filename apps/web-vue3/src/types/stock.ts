@@ -1,6 +1,15 @@
 export type ScoreTrend = "up" | "flat" | "down";
 
-export type StockAnalysis = {
+export type SearchStock = {
+  code: string;
+  name: string;
+  market: string;
+  industry: string | null;
+};
+
+export type StockAnalysis = SearchStock & {
+  latestPrice: number;
+  changePercent: number;
   code: string;
   name: string;
   totalScore: number;
@@ -17,6 +26,8 @@ export type StockAnalysis = {
   technicalsReasons: string[];
   sentimentReasons: string[];
 };
+
+export type StockCard = SearchStock & Partial<StockAnalysis>;
 
 export type DimensionKey =
   | "fundamentalsScore"

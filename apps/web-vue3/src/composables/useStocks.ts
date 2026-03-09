@@ -1,5 +1,6 @@
 import { computed, ref, watch } from "vue";
-import { stocks } from "../mock/stocks";
+import { fetchStockAnalysis, fetchStockSearch } from "../api/stocks";
+import type { SearchStock, StockAnalysis, StockCard } from "../types/stock";
 
 const WATCHLIST_KEY = "stock-analysis-watchlist";
 const initialWatchlist = (() => {
@@ -18,6 +19,10 @@ const initialWatchlist = (() => {
 
 const watchlist = ref<string[]>(initialWatchlist);
 const query = ref("");
+const searchResults = ref<SearchStock[]>([]);
+const analyses = ref<Record<string, StockAnalysis>>({});
+const isSearching = ref(false);
+const searchError = ref("");
 
 watch(
   watchlist,
@@ -29,18 +34,64 @@ watch(
   { deep: true }
 );
 
+async function ensureAnalysis(code: string) {
+  if (analyses.value[code]) return analyses.value[code];
+
+  const result = await fetchStockAnalysis(code);
+  analyses.value = {
+    ...analyses.value,
+    [code]: result,
+  };
+  return result;
+}
+
+async function refreshSearch() {
+  isSearching.value = true;
+  searchError.value = "";
+
+  try {
+    const results = await fetchStockSearch(query.value.trim());
+    searchResults.value = results;
+
+    // 首页只预取前几个候选的分析结果，避免一次把搜索接口拖成全量分析接口。
+    await Promise.all(results.slice(0, 3).map((stock) => ensureAnalysis(stock.code)));
+  } catch (error) {
+    searchError.value = error instanceof Error ? error.message : "搜索失败";
+    searchResults.value = [];
+  } finally {
+    isSearching.value = false;
+  }
+}
+
+watch(query, () => {
+  void refreshSearch();
+});
+
+void refreshSearch();
+
 export function useStocks() {
-  const filteredStocks = computed(() => {
-    const keyword = query.value.trim();
-    if (!keyword) return stocks;
+  const filteredStocks = computed<StockCard[]>(() =>
+    searchResults.value.map((stock) => ({
+      ...stock,
+      ...analyses.value[stock.code],
+    }))
+  );
 
-    return stocks.filter((stock) => {
-      return stock.code.includes(keyword) || stock.name.includes(keyword);
-    });
-  });
+  const watchlistStocks = computed<StockCard[]>(() =>
+    watchlist.value.map((code) => {
+      const analysis = analyses.value[code];
+      if (analysis) return analysis;
 
-  const watchlistStocks = computed(() =>
-    stocks.filter((stock) => watchlist.value.includes(stock.code))
+      const searchResult = searchResults.value.find((item) => item.code === code);
+      if (searchResult) return searchResult;
+
+      return {
+        code,
+        name: code,
+        market: "A-share",
+        industry: null,
+      };
+    })
   );
 
   const setQuery = (value: string) => {
@@ -51,14 +102,24 @@ export function useStocks() {
     watchlist.value = watchlist.value.includes(code)
       ? watchlist.value.filter((item) => item !== code)
       : [...watchlist.value, code];
+
+    if (watchlist.value.includes(code)) {
+      void ensureAnalysis(code);
+    }
   };
 
   const isWatched = (code: string) => watchlist.value.includes(code);
 
-  const findStock = (code: string) => stocks.find((stock) => stock.code === code);
+  const findStock = async (code: string) => {
+    try {
+      return await ensureAnalysis(code);
+    } catch {
+      return analyses.value[code] ?? null;
+    }
+  };
 
   const scoreDelta = (code: string) => {
-    const stock = findStock(code);
+    const stock = analyses.value[code];
     if (!stock || stock.scoreHistory.length < 2) return 0;
 
     const previous = stock.scoreHistory[stock.scoreHistory.length - 2];
@@ -69,10 +130,13 @@ export function useStocks() {
     query,
     filteredStocks,
     watchlistStocks,
+    isSearching,
+    searchError,
     setQuery,
     toggleWatchlist,
     isWatched,
     findStock,
-    scoreDelta
+    scoreDelta,
+    ensureAnalysis,
   };
 }

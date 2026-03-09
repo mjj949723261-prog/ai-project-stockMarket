@@ -59,22 +59,36 @@
 
   <section v-else class="panel">
     <h2 class="section-title">未找到股票</h2>
-    <p class="muted">请返回首页重新搜索股票代码或名称。</p>
+    <p class="muted">{{ isLoading ? "正在拉取实时分析..." : "请返回首页重新搜索股票代码或名称。" }}</p>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import DimensionScoreCard from "../components/DimensionScoreCard.vue";
 import ReasonList from "../components/ReasonList.vue";
 import ScoreSummaryCard from "../components/ScoreSummaryCard.vue";
 import ScoreHistoryStrip from "../components/ScoreHistoryStrip.vue";
 import { useStocks } from "../composables/useStocks";
+import type { StockAnalysis } from "../types/stock";
 
 const route = useRoute();
 const { findStock, isWatched, toggleWatchlist } = useStocks();
+const stock = ref<StockAnalysis | null>(null);
+const isLoading = ref(false);
 
-// 详情页只从统一 mock 数据中取目标股票，避免页面自己维护独立状态。
-const stock = computed(() => findStock(String(route.params.code ?? "")));
+async function loadStock() {
+  isLoading.value = true;
+  stock.value = await findStock(String(route.params.code ?? ""));
+  isLoading.value = false;
+}
+
+watch(() => route.params.code, () => {
+  void loadStock();
+});
+
+onMounted(() => {
+  void loadStock();
+});
 </script>

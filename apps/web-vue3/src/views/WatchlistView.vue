@@ -22,13 +22,13 @@
           <span>技术面</span>
           <span>情绪面</span>
         </div>
-        <div v-for="stock in watchlistStocks" :key="`${stock.code}-compare`" class="compare-row">
+        <div v-for="stock in comparableStocks" :key="`${stock.code}-compare`" class="compare-row">
           <span>{{ stock.name }}</span>
-          <span>{{ stock.totalScore }}</span>
-          <span>{{ stock.fundamentalsScore }}</span>
-          <span>{{ stock.newsScore }}</span>
-          <span>{{ stock.technicalsScore }}</span>
-          <span>{{ stock.sentimentScore }}</span>
+          <span>{{ stock.totalScore ?? "--" }}</span>
+          <span>{{ stock.fundamentalsScore ?? "--" }}</span>
+          <span>{{ stock.newsScore ?? "--" }}</span>
+          <span>{{ stock.technicalsScore ?? "--" }}</span>
+          <span>{{ stock.sentimentScore ?? "--" }}</span>
         </div>
       </div>
     </div>
@@ -36,8 +36,16 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted } from "vue";
 import StockListItem from "../components/StockListItem.vue";
 import { useStocks } from "../composables/useStocks";
 
-const { watchlistStocks } = useStocks();
+const { watchlistStocks, ensureAnalysis } = useStocks();
+const comparableStocks = computed(() => watchlistStocks.value.filter((stock) => stock.totalScore));
+
+onMounted(() => {
+  watchlistStocks.value.forEach((stock) => {
+    void ensureAnalysis(stock.code);
+  });
+});
 </script>
