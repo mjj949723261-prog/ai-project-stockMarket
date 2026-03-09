@@ -39,6 +39,8 @@
       />
     </div>
 
+    <ScoreHistoryStrip :history="stock.scoreHistory" />
+
     <div class="panel">
       <div class="row">
         <h2 class="section-title" style="margin: 0">操作</h2>
@@ -67,6 +69,7 @@ import { useRoute } from "vue-router";
 import DimensionScoreCard from "../components/DimensionScoreCard.vue";
 import ReasonList from "../components/ReasonList.vue";
 import ScoreSummaryCard from "../components/ScoreSummaryCard.vue";
+import ScoreHistoryStrip from "../components/ScoreHistoryStrip.vue";
 import { useStocks } from "../composables/useStocks";
 
 const route = useRoute();
@@ -75,4 +78,3 @@ const { findStock, isWatched, toggleWatchlist } = useStocks();
 // 详情页只从统一 mock 数据中取目标股票，避免页面自己维护独立状态。
 const stock = computed(() => findStock(String(route.params.code ?? "")));
 </script>
-

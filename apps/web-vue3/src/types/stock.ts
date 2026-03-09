@@ -11,6 +11,7 @@ export type StockAnalysis = {
   verdict: string;
   riskWarning: string;
   scoreTrend: ScoreTrend;
+  scoreHistory: number[];
   fundamentalsReasons: string[];
   newsReasons: string[];
   technicalsReasons: string[];
@@ -22,4 +23,3 @@ export type DimensionKey =
   | "newsScore"
   | "technicalsScore"
   | "sentimentScore";
-

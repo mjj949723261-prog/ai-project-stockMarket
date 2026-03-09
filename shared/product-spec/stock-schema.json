@@ -32,6 +32,15 @@
       "type": "string",
       "enum": ["up", "flat", "down"]
     },
+    "scoreHistory": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100
+      }
+    },
     "fundamentalsReasons": {
       "type": "array",
       "items": { "type": "string" }
@@ -50,4 +59,3 @@
     }
   }
 }
-

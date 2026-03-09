@@ -1,12 +1,15 @@
 # SwiftUI 版本说明
 
-该目录目前提供 `SwiftUI` 组件化源码骨架，包含：
+该目录目前提供 `SwiftUI` 可构建最小工程，包含：
 
 - 首页
 - 个股详情页
 - 自选页
 - 统一模型
 - 本地 mock 仓储
+- `StockAnalysisApp.xcodeproj`
 
-当前没有生成完整 `.xcodeproj` 工程文件，后续可在 Xcode 中新建 App 工程后导入这些源码目录。
+已验证：
 
+- `swiftc -typecheck` 通过
+- `xcodebuild -project StockAnalysisApp.xcodeproj -scheme StockAnalysisApp -destination 'generic/platform=iOS Simulator' ... build` 通过
