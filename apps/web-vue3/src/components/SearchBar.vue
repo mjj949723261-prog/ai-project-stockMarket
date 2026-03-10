@@ -3,7 +3,7 @@
     <input
       class="search-input"
       :value="modelValue"
-      placeholder="搜索股票代码或名称"
+      placeholder="搜索股票、板块、概念"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
     <div class="chip-row">
@@ -23,4 +23,3 @@ const emit = defineEmits<{
   "update:modelValue": [value: string];
 }>();
 </script>
-

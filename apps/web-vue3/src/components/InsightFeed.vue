@@ -9,7 +9,12 @@
     </div>
 
     <div class="insight-list">
-      <article v-for="item in items" :key="`${item.category}-${item.title}`" class="insight-card">
+      <RouterLink
+        v-for="item in items"
+        :key="`${item.category}-${item.title}`"
+        class="insight-card news-card-link"
+        :to="`/news/${item.id}`"
+      >
         <div class="row" style="align-items: flex-start">
           <div>
             <div class="signal-row">
@@ -28,17 +33,16 @@
         </div>
 
         <div class="meta-row">
-          <a class="source-link" :href="item.sourceUrl" target="_blank" rel="noreferrer">
-            {{ item.source }}
-          </a>
+          <span>{{ item.source }}</span>
           <span>{{ item.publishedAt }}</span>
         </div>
-      </article>
+      </RouterLink>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import { RouterLink } from "vue-router";
 import type { ImpactValue, InsightCategory, InsightItem } from "../types/stock";
 
 defineProps<{

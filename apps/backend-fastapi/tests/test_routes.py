@@ -75,6 +75,10 @@ def test_build_news_sections_splits_breaking_news_and_insights():
     sections = build_news_sections(items)
     assert len(sections["breaking_news"]) == 1
     assert len(sections["insights"]) == 1
+    assert sections["breaking_news"][0]["level"] == "high"
+    assert sections["breaking_news"][0]["sectors"] == ["白酒"]
+    assert sections["insights"][0]["urgency"] == "high"
+    assert sections["insights"][0]["sectors"] == ["白酒"]
 
 
 def test_analysis_route_returns_real_news_sections():

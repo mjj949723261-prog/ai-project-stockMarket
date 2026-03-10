@@ -1,10 +1,10 @@
 <template>
   <div class="app-shell">
     <header class="hero">
-      <p class="eyebrow">A 股单股票综合评分助手</p>
-      <h1>股市资讯 App</h1>
+      <p class="eyebrow">A 股研究入口</p>
+      <h1>Signal Deck</h1>
       <p class="subtitle">
-        用统一的评分结构看一只股票是否值得继续研究，而不是被资讯流淹没。
+        把股票、板块和资讯证据放进同一套研究流程，而不是继续被传统资讯页拖慢判断。
       </p>
     </header>
 
@@ -22,4 +22,3 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from "vue-router";
 </script>
-

@@ -50,6 +50,27 @@ def test_global_news_provider_filters_reuters_and_bloomberg_entries():
     assert len(items) == 1
     assert items[0]["region"] == "global"
     assert items[0]["source"] == "Reuters"
+    assert items[0]["title"] == "油价因供应担忧上涨"
+    assert items[0]["summary"] == "布伦特原油延续涨势"
+
+
+def test_global_news_provider_localizes_phrase_variants_case_insensitively():
+    provider = GlobalNewsProvider()
+
+    items = provider._normalize(
+        [
+            {
+                "title": "Battery supply chain faces Cost Pressure",
+                "summary": "Markets watch Dollar and Yields",
+                "link": "https://www.bloomberg.com/example",
+                "source": "Bloomberg",
+                "published": "Tue, 10 Mar 2026 08:00:00 GMT",
+            }
+        ]
+    )
+
+    assert items[0]["title"] == "电池供应链面临成本压力"
+    assert items[0]["summary"] == "市场关注美元和收益率"
 
 
 def test_classify_news_items_marks_sector_and_score_effect():

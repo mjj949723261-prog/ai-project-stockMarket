@@ -1,5 +1,5 @@
 <template>
-  <article class="breaking-card">
+  <RouterLink class="breaking-card news-card-link" :to="`/news/${item.id}`">
     <div class="row" style="align-items: flex-start">
       <div>
         <div class="signal-row">
@@ -18,17 +18,16 @@
     </div>
 
     <div class="meta-row">
-      <a class="source-link" :href="item.sourceUrl" target="_blank" rel="noreferrer">
-        {{ item.source }}
-      </a>
+      <span>{{ item.source }}</span>
       <span>{{ item.region === "global" ? "国际" : "国内" }}</span>
       <span>{{ item.publishedAt }}</span>
     </div>
-  </article>
+  </RouterLink>
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { RouterLink } from "vue-router";
 import type { BreakingNewsItem } from "../types/stock";
 
 const props = defineProps<{

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from email.utils import parsedate_to_datetime
+import re
 from typing import Dict, List
 from xml.etree import ElementTree
 
@@ -9,6 +10,33 @@ import httpx
 
 class GlobalNewsProvider:
     SUPPORTED_SOURCES = {"Reuters", "Bloomberg"}
+    TRANSLATIONS = {
+        "Oil prices rise on supply worries": "油价因供应担忧上涨",
+        "Brent crude extended gains": "布伦特原油延续涨势",
+        "Battery supply chain faces cost pressure": "电池供应链面临成本压力",
+        "Markets watch Dollar and Yields": "市场关注美元和收益率",
+        "Oil prices": "油价",
+        "Battery": "电池",
+        "Markets": "市场",
+        "watch": "关注",
+        "and": "和",
+        "faces": "面临",
+        "rise": "上涨",
+        "supply worries": "供应担忧",
+        "Brent crude": "布伦特原油",
+        "extended gains": "延续涨势",
+        "markets": "市场",
+        "stocks": "股票",
+        "trade": "交易",
+        "supply chain": "供应链",
+        "cost pressure": "成本压力",
+        "demand": "需求",
+        "rate cut": "降息",
+        "rate hike": "加息",
+        "dollar": "美元",
+        "yields": "收益率",
+        "Fed": "美联储",
+    }
 
     def __init__(self, feed_urls: List[str] | None = None, timeout_seconds: float = 6.0) -> None:
         self.feed_urls = feed_urls or []
@@ -66,8 +94,8 @@ class GlobalNewsProvider:
 
             items.append(
                 {
-                    "title": str(item.get("title") or "").strip(),
-                    "summary": str(item.get("summary") or "").strip(),
+                    "title": self._localize_text(str(item.get("title") or "").strip()),
+                    "summary": self._localize_text(str(item.get("summary") or "").strip()),
                     "source": source,
                     "sourceUrl": str(item.get("link") or "").strip(),
                     "publishedAt": published,
@@ -77,3 +105,9 @@ class GlobalNewsProvider:
             )
 
         return [item for item in items if item["title"]]
+
+    def _localize_text(self, text: str) -> str:
+        localized = text
+        for source, target in sorted(self.TRANSLATIONS.items(), key=lambda item: len(item[0]), reverse=True):
+            localized = re.sub(re.escape(source), target, localized, flags=re.IGNORECASE)
+        return localized

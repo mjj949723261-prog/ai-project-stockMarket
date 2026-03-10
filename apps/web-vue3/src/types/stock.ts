@@ -3,6 +3,8 @@ export type ImpactValue = "positive" | "neutral" | "negative";
 export type AlertLevel = "high" | "medium" | "low";
 export type ConfidenceLevel = "high" | "medium" | "low";
 export type InsightCategory = "company" | "sector" | "macro";
+export type RegionValue = "domestic" | "global";
+export type SectorHeat = "high" | "warming" | "diverging";
 
 export type CandlePoint = {
   date: string;
@@ -13,10 +15,11 @@ export type CandlePoint = {
 };
 
 export type BreakingNewsItem = {
+  id?: string;
   title: string;
   summary: string;
   sourceUrl: string;
-  region: "domestic" | "global";
+  region: RegionValue;
   impact: ImpactValue;
   level: AlertLevel;
   sectors: string[];
@@ -32,11 +35,12 @@ export type SectorImpactItem = {
 };
 
 export type InsightItem = {
+  id?: string;
   title: string;
   summary: string;
   category: InsightCategory;
   sourceUrl: string;
-  region: "domestic" | "global";
+  region: RegionValue;
   urgency: AlertLevel;
   impact: ImpactValue;
   sectors: string[];
@@ -83,6 +87,37 @@ export type StockAnalysis = SearchStock & {
 };
 
 export type StockCard = SearchStock & Partial<StockAnalysis>;
+
+export type HotSectorStock = {
+  code: string;
+  name: string;
+  tag: string;
+};
+
+export type HotSector = {
+  id: string;
+  name: string;
+  heat: SectorHeat;
+  status: string;
+  stocks: HotSectorStock[];
+};
+
+export type NewsEntry = {
+  id: string;
+  title: string;
+  summary: string;
+  source: string;
+  sourceUrl: string;
+  publishedAt: string;
+  region: RegionValue;
+  impact: ImpactValue;
+  urgency: AlertLevel;
+  sectors: string[];
+  scoreEffect: string;
+  category: InsightCategory;
+  stockCode: string;
+  stockName: string;
+};
 
 export type DimensionKey =
   | "fundamentalsScore"
