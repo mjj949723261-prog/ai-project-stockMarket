@@ -18,7 +18,10 @@
     </div>
 
     <div class="meta-row">
-      <span>{{ item.source }}</span>
+      <a class="source-link" :href="item.sourceUrl" target="_blank" rel="noreferrer">
+        {{ item.source }}
+      </a>
+      <span>{{ item.region === "global" ? "国际" : "国内" }}</span>
       <span>{{ item.publishedAt }}</span>
     </div>
   </article>

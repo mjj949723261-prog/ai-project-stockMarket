@@ -322,6 +322,15 @@ a {
   font-size: 12px;
 }
 
+.source-link {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+}
+
 .warn {
   color: var(--warn);
 }

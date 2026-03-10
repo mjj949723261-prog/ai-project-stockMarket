@@ -11,13 +11,22 @@ from app.models.analysis import StockAnalysis
 from app.models.stock import SearchStock
 from app.providers.akshare_provider import AkshareProvider
 from app.providers.fallback_data import find_stock_fixture, load_stock_fixtures
+from app.providers.news.akshare_news_provider import AkshareNewsProvider
+from app.providers.news.global_news_provider import GlobalNewsProvider
 from app.providers.tushare_provider import TushareProvider
 from app.scoring.engine import score_analysis
+from app.services.analysis_builder import build_news_sections
+from app.services.news_classifier import classify_news_items
 
 router = APIRouter(prefix="/api/stocks", tags=["stocks"])
 
 cache = MemoryCache()
 akshare_provider = AkshareProvider()
+akshare_news_provider = AkshareNewsProvider()
+global_news_provider = GlobalNewsProvider(
+    feed_urls=[item.strip() for item in settings.global_news_feed_urls.split(",") if item.strip()],
+    timeout_seconds=settings.global_news_timeout_seconds,
+)
 tushare_provider = TushareProvider(token=settings.tushare_token)
 
 
@@ -102,6 +111,8 @@ def _build_breaking_news(
         {
             "title": f"{sector}链条日内{move_label}",
             "summary": f"价格波动与成交活跃度同步变化，当前被归类为{direction}事件，需要结合板块扩散判断持续性。",
+            "sourceUrl": "https://example.com/local-market-signal",
+            "region": "domestic",
             "impact": impact,
             "level": level,
             "sectors": [sector],
@@ -112,6 +123,8 @@ def _build_breaking_news(
         {
             "title": f"{sector}板块关注度出现再定价",
             "summary": "系统根据个股波动、行业属性和历史评分变化生成预警，提示优先检查板块联动而非单点冲高。",
+            "sourceUrl": "https://example.com/system-sector-signal",
+            "region": "domestic",
             "impact": "neutral" if impact == "positive" else impact,
             "level": "medium",
             "sectors": [sector, "消费龙头" if sector != "消费龙头" else sector],
@@ -157,6 +170,9 @@ def _build_insights(
             "title": f"{name} 公司观察",
             "summary": "当前评分以行情和基础面聚合为主，短期没有检测到需要完全推翻判断的公司级异常信号。",
             "category": "company",
+            "sourceUrl": "https://example.com/company-observation",
+            "region": "domestic",
+            "urgency": "low",
             "impact": impact,
             "sectors": [sector],
             "source": "AKShare + 系统归因",
@@ -167,6 +183,9 @@ def _build_insights(
             "title": f"{sector} 板块脉冲",
             "summary": "板块维度更适合看扩散而不是单日涨跌，当前建议同步关注龙头和跟随股的强弱分化。",
             "category": "sector",
+            "sourceUrl": "https://example.com/sector-pulse",
+            "region": "domestic",
+            "urgency": "medium",
             "impact": impact,
             "sectors": [sector],
             "source": "系统板块推演",
@@ -177,6 +196,9 @@ def _build_insights(
             "title": "国际宏观观察",
             "summary": "海外需求、汇率和全球风险偏好会影响 A 股核心资产估值弹性，当前宜把宏观扰动作为风险校正项而非单独交易信号。",
             "category": "macro",
+            "sourceUrl": "https://example.com/global-macro-view",
+            "region": "global",
+            "urgency": "medium",
             "impact": "neutral",
             "sectors": [sector, "国际宏观"],
             "source": "系统宏观视角",
@@ -184,6 +206,37 @@ def _build_insights(
             "scoreEffect": "暂作评价修正，不直接单独加分",
         },
     ]
+
+
+def _news_payload(
+    *,
+    code: str,
+    name: str,
+    industry: str | None,
+    fallback_breaking_news: List[Dict],
+    fallback_insights: List[Dict],
+) -> Dict[str, List[Dict]]:
+    domestic_items = akshare_news_provider.get_company_news(code)
+    global_items = global_news_provider.get_market_news()
+    raw_items = [*domestic_items, *global_items]
+    if not raw_items:
+        return {
+            "breaking_news": fallback_breaking_news,
+            "insights": fallback_insights,
+        }
+
+    classified = classify_news_items(
+        code=code,
+        name=name,
+        industry=industry,
+        raw_items=raw_items,
+    )
+    sections = build_news_sections(classified)
+    if not sections["breaking_news"]:
+        sections["breaking_news"] = fallback_breaking_news[:1]
+    if not sections["insights"]:
+        sections["insights"] = fallback_insights
+    return sections
 
 
 def _analysis_from_fixture(fallback: Dict) -> StockAnalysis:
@@ -207,6 +260,33 @@ def _analysis_from_fixture(fallback: Dict) -> StockAnalysis:
     )
     latest_price = float(fallback.get("latestPrice", 0))
     score_effect = "消息面 +1，情绪面 +1" if change_percent >= 0 else "消息面 -1，情绪面 -1"
+    fallback_breaking_news = fallback.get(
+        "breakingNews",
+        _build_breaking_news(
+            industry=industry,
+            change_percent=change_percent,
+            score_effect=score_effect,
+            timestamp=timestamp,
+        ),
+    )
+    fallback_insights = fallback.get(
+        "insights",
+        _build_insights(
+            name=fallback["name"],
+            industry=industry,
+            change_percent=change_percent,
+            news_score=int(fallback["newsScore"]),
+            timestamp=timestamp,
+        ),
+    )
+    news_sections = _news_payload(
+        code=fallback["code"],
+        name=fallback["name"],
+        industry=industry,
+        fallback_breaking_news=fallback_breaking_news,
+        fallback_insights=fallback_insights,
+    )
+
     return StockAnalysis(
         code=fallback["code"],
         name=fallback["name"],
@@ -229,29 +309,12 @@ def _analysis_from_fixture(fallback: Dict) -> StockAnalysis:
         scoreTrend=fallback["scoreTrend"],
         scoreHistory=history,
         candles=_build_candles([], latest_price),
-        breakingNews=fallback.get(
-            "breakingNews",
-            _build_breaking_news(
-                industry=industry,
-                change_percent=change_percent,
-                score_effect=score_effect,
-                timestamp=timestamp,
-            ),
-        ),
+        breakingNews=news_sections["breaking_news"],
         sectorImpacts=fallback.get(
             "sectorImpacts",
             _build_sector_impacts(industry, change_percent),
         ),
-        insights=fallback.get(
-            "insights",
-            _build_insights(
-                name=fallback["name"],
-                industry=industry,
-                change_percent=change_percent,
-                news_score=int(fallback["newsScore"]),
-                timestamp=timestamp,
-            ),
-        ),
+        insights=news_sections["insights"],
         fundamentalsReasons=fallback["fundamentalsReasons"],
         newsReasons=fallback["newsReasons"],
         technicalsReasons=fallback["technicalsReasons"],
@@ -356,6 +419,27 @@ def get_analysis(code: str) -> StockAnalysis:
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     score_effect = "消息面 +2，情绪面 +1" if latest["change_percent"] >= 0 else "消息面 -2，情绪面 -1"
 
+    fallback_breaking_news = _build_breaking_news(
+        industry=profile.get("industry"),
+        change_percent=float(latest["change_percent"]),
+        score_effect=score_effect,
+        timestamp=timestamp,
+    )
+    fallback_insights = _build_insights(
+        name=profile.get("name", code),
+        industry=profile.get("industry"),
+        change_percent=float(latest["change_percent"]),
+        news_score=scores["news_score"],
+        timestamp=timestamp,
+    )
+    news_sections = _news_payload(
+        code=code,
+        name=profile.get("name", code),
+        industry=profile.get("industry"),
+        fallback_breaking_news=fallback_breaking_news,
+        fallback_insights=fallback_insights,
+    )
+
     result = StockAnalysis(
         code=profile.get("code", code),
         name=profile.get("name", code),
@@ -378,20 +462,9 @@ def get_analysis(code: str) -> StockAnalysis:
         scoreTrend=scores["score_trend"],
         scoreHistory=_build_history_scores(history, scores["total_score"]),
         candles=_build_candles(history, profile.get("latest_price", 0)),
-        breakingNews=_build_breaking_news(
-            industry=profile.get("industry"),
-            change_percent=float(latest["change_percent"]),
-            score_effect=score_effect,
-            timestamp=timestamp,
-        ),
+        breakingNews=news_sections["breaking_news"],
         sectorImpacts=_build_sector_impacts(profile.get("industry"), float(latest["change_percent"])),
-        insights=_build_insights(
-            name=profile.get("name", code),
-            industry=profile.get("industry"),
-            change_percent=float(latest["change_percent"]),
-            news_score=scores["news_score"],
-            timestamp=timestamp,
-        ),
+        insights=news_sections["insights"],
         fundamentalsReasons=scores["reasons"]["fundamentals"],
         newsReasons=scores["reasons"]["news"],
         technicalsReasons=scores["reasons"]["technicals"],

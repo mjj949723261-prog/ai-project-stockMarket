@@ -23,11 +23,14 @@
 
         <div class="chip-row">
           <span v-for="sector in item.sectors" :key="sector" class="chip">{{ sector }}</span>
+          <span class="chip">{{ item.region === "global" ? "国际" : "国内" }}</span>
           <span class="chip">{{ item.scoreEffect }}</span>
         </div>
 
         <div class="meta-row">
-          <span>{{ item.source }}</span>
+          <a class="source-link" :href="item.sourceUrl" target="_blank" rel="noreferrer">
+            {{ item.source }}
+          </a>
           <span>{{ item.publishedAt }}</span>
         </div>
       </article>

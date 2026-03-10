@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     )
 
     tushare_token: Optional[str] = None
+    global_news_feed_urls: str = "https://feeds.reuters.com/reuters/businessNews,https://feeds.bloomberg.com/markets/news.rss"
+    global_news_timeout_seconds: float = 6.0
     search_cache_ttl_seconds: int = 60 * 60 * 12
     analysis_cache_ttl_seconds: int = 60 * 5
 

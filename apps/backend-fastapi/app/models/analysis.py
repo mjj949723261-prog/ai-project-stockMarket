@@ -20,6 +20,8 @@ class CandlePoint(BaseModel):
 class BreakingNewsItem(BaseModel):
     title: str
     summary: str
+    sourceUrl: str = ""
+    region: Literal["domestic", "global"] = "domestic"
     impact: ImpactValue
     level: AlertLevel
     sectors: List[str]
@@ -38,6 +40,9 @@ class InsightItem(BaseModel):
     title: str
     summary: str
     category: InsightCategory
+    sourceUrl: str = ""
+    region: Literal["domestic", "global"] = "domestic"
+    urgency: AlertLevel = "low"
     impact: ImpactValue
     sectors: List[str]
     source: str

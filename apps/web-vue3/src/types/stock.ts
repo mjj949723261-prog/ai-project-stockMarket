@@ -15,6 +15,8 @@ export type CandlePoint = {
 export type BreakingNewsItem = {
   title: string;
   summary: string;
+  sourceUrl: string;
+  region: "domestic" | "global";
   impact: ImpactValue;
   level: AlertLevel;
   sectors: string[];
@@ -33,6 +35,9 @@ export type InsightItem = {
   title: string;
   summary: string;
   category: InsightCategory;
+  sourceUrl: string;
+  region: "domestic" | "global";
+  urgency: AlertLevel;
   impact: ImpactValue;
   sectors: string[];
   source: string;
