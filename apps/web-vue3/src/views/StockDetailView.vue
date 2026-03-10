@@ -4,9 +4,43 @@
       :code="stock.code"
       :name="stock.name"
       :total-score="stock.totalScore"
+      :latest-price="stock.latestPrice"
+      :change-percent="stock.changePercent"
+      :summary-comment="stock.summaryComment"
       :verdict="stock.verdict"
       :risk-warning="stock.riskWarning"
+    >
+      <template #rating>
+        <RatingBadge :rating="stock.rating" :confidence="stock.confidence" />
+      </template>
+    </ScoreSummaryCard>
+
+    <EvaluationPanel
+      :summary-comment="stock.summaryComment"
+      :advice="stock.advice"
+      :highlight-points="stock.highlightPoints"
+      :risk-points="stock.riskPoints"
     />
+
+    <PriceKLineCard
+      :candles="stock.candles"
+      :latest-price="stock.latestPrice"
+      :change-percent="stock.changePercent"
+      :trend="stock.scoreTrend"
+    />
+
+    <section class="panel">
+      <div class="row">
+        <div>
+          <h2 class="section-title" style="margin-bottom: 6px">突发消息</h2>
+          <p class="muted">优先查看会打断判断节奏的高价值事件。</p>
+        </div>
+        <span class="chip">{{ stock.breakingNews.length }} 条高亮</span>
+      </div>
+      <div class="news-stack">
+        <BreakingNewsCard v-for="item in stock.breakingNews" :key="item.title" :item="item" />
+      </div>
+    </section>
 
     <div class="dimension-grid">
       <DimensionScoreCard
@@ -41,6 +75,10 @@
 
     <ScoreHistoryStrip :history="stock.scoreHistory" />
 
+    <SectorImpactBoard :impacts="stock.sectorImpacts" />
+
+    <InsightFeed :items="stock.insights" />
+
     <div class="panel">
       <div class="row">
         <h2 class="section-title" style="margin: 0">操作</h2>
@@ -66,10 +104,16 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
 import { useRoute } from "vue-router";
+import BreakingNewsCard from "../components/BreakingNewsCard.vue";
 import DimensionScoreCard from "../components/DimensionScoreCard.vue";
+import EvaluationPanel from "../components/EvaluationPanel.vue";
+import InsightFeed from "../components/InsightFeed.vue";
+import PriceKLineCard from "../components/PriceKLineCard.vue";
+import RatingBadge from "../components/RatingBadge.vue";
 import ReasonList from "../components/ReasonList.vue";
 import ScoreSummaryCard from "../components/ScoreSummaryCard.vue";
 import ScoreHistoryStrip from "../components/ScoreHistoryStrip.vue";
+import SectorImpactBoard from "../components/SectorImpactBoard.vue";
 import { useStocks } from "../composables/useStocks";
 import type { StockAnalysis } from "../types/stock";
 

@@ -17,6 +17,12 @@ def test_score_analysis_returns_total_and_dimensions():
         "sentiment_score",
         "score_trend",
         "reasons",
+        "rating",
+        "confidence",
+        "summary_comment",
+        "advice",
+        "highlight_points",
+        "risk_points",
     }
 
 
@@ -29,4 +35,3 @@ def test_score_analysis_keeps_total_within_100():
     )
 
     assert 0 <= result["total_score"] <= 100
-

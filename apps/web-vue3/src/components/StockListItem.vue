@@ -9,8 +9,9 @@
     </div>
 
     <div class="row">
-      <span class="muted">{{ stock.verdict ?? "点击查看实时分析" }}</span>
+      <span class="muted">{{ stock.rating ?? stock.verdict ?? "点击查看实时分析" }}</span>
       <div class="chip-row">
+        <span v-if="stock.breakingNews?.length" class="chip">突发 {{ stock.breakingNews.length }}</span>
         <span v-if="stock.scoreHistory" class="chip">5日 {{ stock.scoreHistory[stock.scoreHistory.length - 1] - stock.scoreHistory[0] > 0 ? "+" : "" }}{{ stock.scoreHistory[stock.scoreHistory.length - 1] - stock.scoreHistory[0] }}</span>
         <TrendBadge :trend="stock.scoreTrend ?? 'flat'" />
       </div>

@@ -72,6 +72,7 @@ def score_analysis(
         "fundamentals": [
             "营收增长为正" if revenue_growth > 0 else "营收增长数据暂弱",
             "利润增长为正" if profit_growth > 0 else "利润增长数据暂弱",
+            "ROE 保持在健康区间" if roe > 0.12 else "ROE 仍需继续改善",
         ],
         "news": [
             "近期未见显著利空" if news_score >= 14 else "近期外部消息偏谨慎",
@@ -85,6 +86,46 @@ def score_analysis(
         ],
     }
 
+    if total_score >= 85:
+        rating = "A 关注优先级高"
+        advice = "适合继续跟踪，并等待更强确认。"
+    elif total_score >= 75:
+        rating = "A- 值得持续跟踪"
+        advice = "适合继续跟踪，节奏上避免追高。"
+    elif total_score >= 65:
+        rating = "B+ 有亮点但需观察"
+        advice = "适合观察催化是否持续，不宜单靠情绪判断。"
+    elif total_score >= 55:
+        rating = "B 结构一般"
+        advice = "等待更多确认信号，再决定是否纳入重点观察。"
+    else:
+        rating = "C 风险偏高"
+        advice = "当前不宜激进，优先规避不确定性。"
+
+    confidence = "medium"
+    if revenue_growth and profit_growth and market_cap:
+        confidence = "high"
+    elif not revenue_growth and not profit_growth:
+        confidence = "low"
+
+    summary_parts = [
+        "基本面稳" if fundamentals_score >= 28 else "基本面仍需观察",
+        "消息面偏多" if news_score >= 17 else "消息面中性偏谨慎",
+        "走势改善" if technicals_score >= 18 else "走势弹性一般",
+        "情绪温和" if sentiment_score >= 11 else "情绪支撑有限",
+    ]
+    summary_comment = "，".join(summary_parts) + "。"
+
+    highlight_points = [
+        "总分达到跟踪区间" if total_score >= 70 else "仍处观察区间",
+        "消息面未见显著利空" if news_score >= 14 else "外部消息扰动偏多",
+        "量价结构改善" if technicals_score >= 17 else "量价结构尚未完全转强",
+    ]
+    risk_points = [
+        "短期波动可能放大" if abs(change_percent) > 2 else "短期趋势确认度一般",
+        "财务维度仍需更多结构化数据" if confidence != "high" else "高分仍需结合估值位置",
+    ]
+
     return {
         "total_score": total_score,
         "fundamentals_score": fundamentals_score,
@@ -93,4 +134,10 @@ def score_analysis(
         "sentiment_score": sentiment_score,
         "score_trend": score_trend,
         "reasons": reasons,
+        "rating": rating,
+        "confidence": confidence,
+        "summary_comment": summary_comment,
+        "advice": advice,
+        "highlight_points": highlight_points,
+        "risk_points": risk_points,
     }
