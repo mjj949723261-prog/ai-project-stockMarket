@@ -97,8 +97,11 @@ export type HotSectorStock = {
 export type HotSector = {
   id: string;
   name: string;
+  aliases?: string[];
   heat: SectorHeat;
   status: string;
+  summary: string;
+  highlights: string[];
   stocks: HotSectorStock[];
 };
 
@@ -115,8 +118,8 @@ export type NewsEntry = {
   sectors: string[];
   scoreEffect: string;
   category: InsightCategory;
-  stockCode: string;
-  stockName: string;
+  stockCode: string | null;
+  stockName: string | null;
 };
 
 export type DimensionKey =

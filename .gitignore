@@ -4,6 +4,7 @@ dist
 .build
 .swiftpm
 .derivedData
+.deriveddata-ios
 .venv
 .pytest_cache
 *.egg-info

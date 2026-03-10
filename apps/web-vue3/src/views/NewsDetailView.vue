@@ -26,19 +26,28 @@
       <section class="panel">
         <h2 class="section-title">影响板块</h2>
         <div class="chip-row">
-          <span v-for="sector in news.sectors" :key="sector" class="chip">{{ sector }}</span>
+          <component
+            :is="sectorLink(sector) ? RouterLink : 'span'"
+            v-for="sector in news.sectors"
+            :key="sector"
+            class="chip chip-button"
+            :to="sectorLink(sector) ? `/sectors/${sectorLink(sector)}` : undefined"
+          >
+            {{ sector }}
+          </component>
         </div>
       </section>
 
       <section class="panel">
         <h2 class="section-title">关联股票</h2>
-        <RouterLink class="stock-item compact-stock" :to="`/stocks/${news.stockCode}`">
+        <RouterLink v-if="news.stockCode" class="stock-item compact-stock" :to="`/stocks/${news.stockCode}`">
           <div>
             <strong>{{ news.stockName }}</strong>
             <div class="code">{{ news.stockCode }}</div>
           </div>
           <span class="chip">查看个股</span>
         </RouterLink>
+        <p v-else class="news-detail-body">当前没有明确关联股票，建议优先从影响板块继续展开。</p>
       </section>
 
       <section class="panel">
@@ -61,7 +70,7 @@ import { RouterLink, useRoute } from "vue-router";
 import { useStocks } from "../composables/useStocks";
 
 const route = useRoute();
-const { getNewsById } = useStocks();
+const { getNewsById, findSectorIdByName } = useStocks();
 const news = computed(() => getNewsById(String(route.params.id ?? "")));
 
 const impactLabel = computed(() => {
@@ -77,4 +86,8 @@ const urgencyLabel = computed(() => {
   if (news.value.urgency === "medium") return "重点跟踪";
   return "观察信息";
 });
+
+function sectorLink(name: string) {
+  return findSectorIdByName(name);
+}
 </script>

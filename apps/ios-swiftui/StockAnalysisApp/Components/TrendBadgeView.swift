@@ -16,9 +16,16 @@ struct TrendBadgeView: View {
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Color.green.opacity(0.12))
-            .foregroundStyle(Color.green)
+            .background(color.opacity(0.12))
+            .foregroundStyle(color)
             .clipShape(Capsule())
     }
-}
 
+    private var color: Color {
+        switch trend {
+        case .up: return .green
+        case .flat: return .orange
+        case .down: return .red
+        }
+    }
+}

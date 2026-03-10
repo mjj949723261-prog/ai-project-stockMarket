@@ -1,5 +1,5 @@
 <template>
-  <article class="hot-sector-card">
+  <RouterLink class="hot-sector-card sector-card-link" :to="`/sectors/${sector.id}`">
     <div class="row">
       <div>
         <p class="eyebrow sector-eyebrow">热门板块</p>
@@ -16,12 +16,13 @@
         :key="stock.code"
         class="sector-stock-link"
         :to="`/stocks/${stock.code}`"
+        @click.stop
       >
         <strong>{{ stock.name }}</strong>
         <span class="chip">{{ stock.tag }}</span>
       </RouterLink>
     </div>
-  </article>
+  </RouterLink>
 </template>
 
 <script setup lang="ts">

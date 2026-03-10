@@ -5,8 +5,11 @@ struct StockRepository {
         MockStocks.all
     }
 
-    func findStock(code: String) -> Stock? {
-        MockStocks.all.first { $0.code == code }
+    func loadSectors() -> [HotSector] {
+        MockStocks.sectors
+    }
+
+    func loadNews() -> [NewsEntry] {
+        MockStocks.news
     }
 }
-

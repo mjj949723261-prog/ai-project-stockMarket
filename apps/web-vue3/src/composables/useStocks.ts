@@ -44,6 +44,10 @@ function newsId(parts: string[]) {
     .replace(/^-+|-+$/g, "");
 }
 
+function dynamicSectorId(name: string) {
+  return `dynamic~${encodeURIComponent(name.trim())}`;
+}
+
 function normalizeAnalysis(result: StockAnalysis): StockAnalysis {
   return {
     ...result,
@@ -94,7 +98,7 @@ function rememberSearchTerm(value: string) {
 
 function enrichBreakingNews(stock: StockAnalysis, item: BreakingNewsItem): NewsEntry {
   return {
-    id: newsId([stock.code, item.publishedAt, item.title]),
+    id: newsId([item.source, item.publishedAt, item.title]),
     title: item.title,
     summary: item.summary,
     source: item.source,
@@ -106,14 +110,14 @@ function enrichBreakingNews(stock: StockAnalysis, item: BreakingNewsItem): NewsE
     sectors: item.sectors,
     scoreEffect: item.scoreEffect,
     category: "macro",
-    stockCode: stock.code,
-    stockName: stock.name
+    stockCode: item.region === "domestic" ? stock.code : null,
+    stockName: item.region === "domestic" ? stock.name : null
   };
 }
 
 function enrichInsight(stock: StockAnalysis, item: InsightItem): NewsEntry {
   return {
-    id: newsId([stock.code, item.publishedAt, item.title]),
+    id: newsId([item.source, item.publishedAt, item.title]),
     title: item.title,
     summary: item.summary,
     source: item.source,
@@ -125,9 +129,58 @@ function enrichInsight(stock: StockAnalysis, item: InsightItem): NewsEntry {
     sectors: item.sectors,
     scoreEffect: item.scoreEffect,
     category: item.category,
-    stockCode: stock.code,
-    stockName: stock.name
+    stockCode: item.category === "company" ? stock.code : null,
+    stockName: item.category === "company" ? stock.name : null
   };
+}
+
+function mergeNewsEntry(current: NewsEntry, incoming: NewsEntry): NewsEntry {
+  const sectors = [...new Set([...current.sectors, ...incoming.sectors])];
+  const stockConflict =
+    current.stockCode &&
+    incoming.stockCode &&
+    current.stockCode !== incoming.stockCode;
+
+  return {
+    ...current,
+    sectors,
+    stockCode: stockConflict ? null : current.stockCode ?? incoming.stockCode,
+    stockName: stockConflict ? null : current.stockName ?? incoming.stockName
+  };
+}
+
+function buildCuratedNews(analysisMap: Record<string, StockAnalysis>) {
+  const perStock = Object.values(analysisMap).map((stock) => [
+    ...stock.breakingNews.map((item) => enrichBreakingNews(stock, item)),
+    ...stock.insights.map((item) => enrichInsight(stock, item))
+  ]);
+
+  const deduped = new Map<string, NewsEntry>();
+  const cursors = perStock.map(() => 0);
+  const result: NewsEntry[] = [];
+  let progress = true;
+
+  while (result.length < 6 && progress) {
+    progress = false;
+
+    perStock.forEach((items, index) => {
+      while (cursors[index] < items.length) {
+        const item = items[cursors[index]];
+        cursors[index] += 1;
+
+        if (!deduped.has(item.id)) {
+          deduped.set(item.id, item);
+          result.push(item);
+          progress = true;
+          break;
+        }
+
+        deduped.set(item.id, mergeNewsEntry(deduped.get(item.id) as NewsEntry, item));
+      }
+    });
+  }
+
+  return result.map((item) => deduped.get(item.id) ?? item);
 }
 
 async function ensureAnalysis(code: string) {
@@ -196,16 +249,7 @@ export function useStocks() {
   );
 
   const curatedNews = computed<NewsEntry[]>(() => {
-    const items = Object.values(analyses.value).flatMap((stock) => [
-      ...stock.breakingNews.map((item) => enrichBreakingNews(stock, item)),
-      ...stock.insights.map((item) => enrichInsight(stock, item))
-    ]);
-
-    const deduped = new Map<string, NewsEntry>();
-    items.forEach((item) => {
-      if (!deduped.has(item.id)) deduped.set(item.id, item);
-    });
-    return [...deduped.values()].slice(0, 6);
+    return buildCuratedNews(analyses.value);
   });
 
   const hotSectorCards = computed<HotSector[]>(() =>
@@ -217,6 +261,83 @@ export function useStocks() {
       }))
     }))
   );
+
+  const hotStocks = computed<StockCard[]>(() => {
+    const codes = hotSectors.flatMap((sector) => sector.stocks.map((stock) => stock.code));
+    const uniqueCodes = [...new Set(codes)];
+
+    return uniqueCodes.map((code) => {
+      const analysis = analyses.value[code];
+      if (analysis) return analysis;
+
+      const sectorStock = hotSectors.flatMap((sector) => sector.stocks).find((item) => item.code === code);
+      return {
+        code,
+        name: sectorStock?.name ?? code,
+        market: "A-share",
+        industry: null
+      };
+    });
+  });
+
+  const getSectorById = (id: string) => {
+    const staticSector = hotSectors.find((sector) => sector.id === id);
+    if (staticSector) return staticSector;
+
+    if (id.startsWith("dynamic~")) {
+      const name = decodeURIComponent(id.replace("dynamic~", ""));
+      return {
+        id,
+        name,
+        heat: "diverging" as const,
+        status: `${name} 当前更多受消息面驱动，适合先看关联股票再决定是否继续跟踪。`,
+        summary: `这是从资讯中动态生成的板块页，优先帮你把 ${name} 对应的相关股票聚合出来。`,
+        highlights: ["资讯驱动", "动态生成", "继续跟踪"],
+        stocks: getSectorStocks(id).map((stock) => ({
+          code: stock.code,
+          name: stock.name,
+          tag: stock.totalScore ? `${stock.totalScore} 分` : "观察"
+        }))
+      };
+    }
+
+    return null;
+  };
+
+  const findSectorIdByName = (name: string) => {
+    const normalized = name.trim();
+    if (!normalized) return null;
+
+    const matched = hotSectors.find((sector) => {
+      const candidates = [sector.name, ...(sector.aliases ?? [])];
+      return candidates.some((candidate) => candidate === normalized || candidate.includes(normalized) || normalized.includes(candidate));
+    });
+
+    return matched?.id ?? dynamicSectorId(normalized);
+  };
+
+  const getSectorStocks = (id: string): StockCard[] => {
+    const sector = hotSectors.find((item) => item.id === id);
+    if (sector) {
+      return sector.stocks.map((stock) => analyses.value[stock.code] ?? {
+        code: stock.code,
+        name: stock.name,
+        market: "A-share",
+        industry: null
+      });
+    }
+
+    if (id.startsWith("dynamic~")) {
+      const name = decodeURIComponent(id.replace("dynamic~", ""));
+      return Object.values(analyses.value).filter((stock) => {
+        const inIndustry = stock.industry?.includes(name);
+        const inNews = [...stock.breakingNews, ...stock.insights].some((item) => item.sectors.includes(name));
+        return Boolean(inIndustry || inNews);
+      });
+    }
+
+    return [];
+  };
 
   const setQuery = (value: string) => {
     query.value = value;
@@ -265,6 +386,7 @@ export function useStocks() {
     watchlistStocks,
     curatedNews,
     hotSectorCards,
+    hotStocks,
     searchHistory,
     isSearching,
     searchError,
@@ -276,6 +398,9 @@ export function useStocks() {
     findStock,
     scoreDelta,
     ensureAnalysis,
-    getNewsById
+    getNewsById,
+    getSectorById,
+    getSectorStocks,
+    findSectorIdByName
   };
 }

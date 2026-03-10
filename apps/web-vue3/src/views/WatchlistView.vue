@@ -6,7 +6,12 @@
         <span class="muted">{{ watchlistStocks.length }} 只</span>
       </div>
       <div v-if="watchlistStocks.length" class="stock-list">
-        <StockListItem v-for="stock in watchlistStocks" :key="stock.code" :stock="stock" />
+        <div v-for="stock in watchlistStocks" :key="stock.code" class="watchlist-row">
+          <StockListItem :stock="stock" />
+          <button class="chip chip-button" type="button" @click="toggleWatchlist(stock.code)">
+            移除自选
+          </button>
+        </div>
       </div>
       <p v-else class="muted">还没有加入自选，先去首页挑一只股票。</p>
     </div>
@@ -40,7 +45,7 @@ import { computed, onMounted } from "vue";
 import StockListItem from "../components/StockListItem.vue";
 import { useStocks } from "../composables/useStocks";
 
-const { watchlistStocks, ensureAnalysis } = useStocks();
+const { watchlistStocks, ensureAnalysis, toggleWatchlist } = useStocks();
 const comparableStocks = computed(() => watchlistStocks.value.filter((stock) => stock.totalScore));
 
 onMounted(() => {
